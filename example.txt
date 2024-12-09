@@ -1,0 +1,40 @@
+from flask import Flask
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.orm import sessionmaker
+
+app = Flask(__name__)
+
+DATABASE_URL = "sqlite:///gyeongtaekdb.db"
+engine = create_engine(DATABASE_URL)
+metadata = MetaData()
+metadata.reflect(bind=engine) 
+
+tables = {
+    "a": metadata.tables['a'],
+    "b": metadata.tables['b'],
+    "c": metadata.tables['c']
+}
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+def increment_count(table_name):
+    try:
+        table = tables[table_name]
+        with engine.begin() as conn: 
+            conn.execute(table.insert().values(count=1))
+            print(f"Inserted into table '{table_name}' successfully.")
+    except Exception as e:
+        print(f"Error inserting into table '{table_name}': {e}")
+
+
+@app.route('/<string:table_name>', methods=['GET'])
+def handle_request(table_name):
+    if table_name in tables:
+        increment_count(table_name)
+        return f"방문 횟수 카운트 '{table_name}'", 200
+    return "Table not found", 404
+
+if __name__ == '__main__':
+    app.run(port=8080)
+
